@@ -9,7 +9,7 @@ import { Heading1, Heading2, Bold, List, Link, FileEdit, Eye, RefreshCw } from '
 
 interface MarkdownEditorProps {
   initialValue: string;
-  onSave: (value: string) => Promise<void>;
+  onSave: (value: string) => void | Promise<void>;
 }
 
 export default function MarkdownEditor({ initialValue, onSave }: MarkdownEditorProps) {

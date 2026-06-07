@@ -38,6 +38,9 @@ npm run host
 
 # 啟動帶有密碼的房間 (例如密碼為 1234)
 npm run host 1234
+
+# 啟動帶有密碼及公告的房間
+npm run host 1234 announces/sample.md
 ```
 
 **CLI 常用指令：**

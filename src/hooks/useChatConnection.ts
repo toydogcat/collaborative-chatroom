@@ -156,7 +156,42 @@ export function useChatConnection(roomId: string, userName: string, isHost: bool
         const payload = JSON.parse(message.toString());
 
         if (topic === joinTopic && isHost) {
-          // ... (existing host join logic) ...
+          const { userId, password: userProvidedPassword } = payload;
+          
+          // Verify password
+          if (roomRef.current?.password && roomRef.current.password !== userProvidedPassword) {
+            mqttClientRef.current?.publish(
+              `luna/chat/${roomId}/signal/${userId}`,
+              JSON.stringify({ fromId: myId, type: 'error', data: '密碼錯誤' })
+            );
+            return;
+          }
+
+          if (!peerConnections.current.has(userId)) {
+            // Host: Initiate WebRTC connection
+            const pc = new RTCPeerConnection(RTC_CONFIG);
+            peerConnections.current.set(userId, pc);
+
+            const dc = pc.createDataChannel('chat');
+            dataChannels.current.set(userId, dc);
+            setupDataChannel(dc, userId);
+
+            pc.onicecandidate = (event) => {
+              if (event.candidate) {
+                mqttClientRef.current?.publish(
+                  `luna/chat/${roomId}/signal/${userId}`,
+                  JSON.stringify({ fromId: myId, type: 'ice', data: event.candidate })
+                );
+              }
+            };
+
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            mqttClientRef.current?.publish(
+              `luna/chat/${roomId}/signal/${userId}`,
+              JSON.stringify({ fromId: myId, type: 'offer', data: offer })
+            );
+          }
         } else if (topic === mySignalTopic) {
           const { fromId, type, data } = payload as SignalingMessage | { fromId: string, type: 'error', data: string };
           

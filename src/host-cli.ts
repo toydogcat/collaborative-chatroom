@@ -1,8 +1,5 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
+import fs from 'fs';
+import path from 'path';
 import mqtt from 'mqtt';
 import * as datachannel from 'node-datachannel';
 import readline from 'readline';
@@ -49,7 +46,33 @@ function logMessage(user: string, text: string) {
 }
 
 const roomId = generateRoomId();
-const roomPassword = process.argv[2] || ''; // Allow password as CLI argument
+
+// Parse arguments to detect password and/or announcement path
+let roomPassword = '';
+let announcementPath = '';
+const args = process.argv.slice(2);
+for (const arg of args) {
+  if (arg.endsWith('.md')) {
+    announcementPath = arg;
+  } else {
+    roomPassword = arg;
+  }
+}
+
+let announcementText = 'Welcome to the Node.js CLI Host!';
+if (announcementPath) {
+  try {
+    const resolvedPath = path.resolve(announcementPath);
+    if (fs.existsSync(resolvedPath)) {
+      announcementText = fs.readFileSync(resolvedPath, 'utf-8');
+      console.log(`📖 Loaded announcement from: ${announcementPath}`);
+    } else {
+      console.error(`⚠️ Announcement file not found at: ${resolvedPath}`);
+    }
+  } catch (e: any) {
+    console.error(`⚠️ Failed to read announcement file: ${e.message}`);
+  }
+}
 
 room = {
   code: roomId,
@@ -58,7 +81,7 @@ room = {
   password: roomPassword,
   chats: [],
   pinnedIds: [],
-  announcement: 'Welcome to the Node.js CLI Host!',
+  announcement: announcementText,
   createdAt: Date.now(),
   updatedAt: Date.now(),
 };

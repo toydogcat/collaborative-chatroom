@@ -33,12 +33,24 @@ export default function LinkPreview({ url }: LinkPreviewProps) {
     setLoading(true);
     setError(false);
 
-    fetch(`/api/link-preview?url=${encodeURIComponent(url)}`)
+    fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch link preview');
         return res.json();
       })
-      .then((meta) => {
+      .then((resJson) => {
+        if (resJson.status !== 'success' || !resJson.data) {
+          throw new Error('Invalid response from microlink');
+        }
+        const metaData = resJson.data;
+        const meta: PreviewData = {
+          url: metaData.url || url,
+          title: metaData.title || 'Link',
+          description: metaData.description || '',
+          image: metaData.image?.url || null,
+          favicon: metaData.logo?.url || '',
+          siteName: metaData.publisher || new URL(url).hostname,
+        };
         if (isMounted) {
           previewCache[url] = meta;
           setData(meta);
