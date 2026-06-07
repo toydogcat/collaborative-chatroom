@@ -29,6 +29,22 @@ npm install
 npm run dev
 ```
 
+### 🖥️ Node.js CLI 房主模式 (Terminal Host)
+除了網頁版，您也可以直接在終端機啟動房主服務：
+
+```bash
+# 啟動公開房間
+npm run host
+
+# 啟動帶有密碼的房間 (例如密碼為 1234)
+npm run host 1234
+```
+
+**CLI 常用指令：**
+- `直接輸入`: 以房主身分發送聊天訊息。
+- `/announce <內容>`: 更新房間的 Markdown 公告。
+- `/quit`: 關閉房間並退出程式。
+
 ### 部屬至 GitHub Pages
 本專案已配置 GitHub Actions。只需推送到 `main` 分支即可自動部屬。
 
