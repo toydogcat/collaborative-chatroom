@@ -1,0 +1,6 @@
+{
+  "name": "Collaborative Chatroom",
+  "description": "A beautiful collaborative chatroom supporting scanning room codes, real-time message exchange with text & image uploads, browser voice recognition input, markdown announcement settings, message focusing, and state backup-restore using ZIP archives.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
