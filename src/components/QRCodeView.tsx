@@ -22,7 +22,7 @@ export default function QRCodeView({ roomCode }: QRCodeViewProps) {
     if (canvasRef.current) {
       QRCode.toCanvas(canvasRef.current, joinUrl, {
         width: 250,
-        margin: 2,
+        margin: 4, // Increased margin to prevent clipping
         color: {
           dark: '#4f46e5',
           light: '#ffffff',
@@ -70,8 +70,8 @@ export default function QRCodeView({ roomCode }: QRCodeViewProps) {
       </div>
 
       {/* QR Code Canvas */}
-      <div className="relative p-2.5 bg-white border border-slate-800 rounded-xl w-48 h-48 flex items-center justify-center mb-4 overflow-hidden">
-        <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+      <div className="relative p-3 bg-white border border-slate-200 rounded-2xl w-52 h-52 flex items-center justify-center mb-4 shadow-inner">
+        <canvas ref={canvasRef} className="w-full h-full rounded-lg" />
       </div>
 
       <p className="text-xs text-slate-400 max-w-xs leading-relaxed mb-4">

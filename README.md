@@ -2,6 +2,8 @@
 
 100% 無後端（Serverless）WebRTC P2P 多人連線聊天室。
 
+[Demo](https://toydogcat.github.io/collaborative-chatroom/)
+
 ## 🚀 特色
 
 - **零伺服器**：部屬為 100% 靜態網頁（GitHub Pages）。
