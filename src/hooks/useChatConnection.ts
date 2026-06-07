@@ -60,13 +60,13 @@ export function useChatConnection(roomId: string, userName: string, isHost: bool
         dc.send(JSON.stringify({ type: 'room_update', room: roomRef.current }));
       }
 
-      // Automatically close MQTT connection 10 seconds after WebRTC is established
-      if (!mqttCloseTimer.current) {
+      // Automatically close MQTT connection for Guests after WebRTC is established
+      if (!isHost && !mqttCloseTimer.current) {
         mqttCloseTimer.current = setTimeout(() => {
           if (mqttClientRef.current) {
             mqttClientRef.current.end();
             mqttClientRef.current = null;
-            console.log('MQTT connection closed (10s after WebRTC establishment)');
+            console.log('Guest MQTT connection closed (10s after WebRTC establishment)');
           }
         }, 10000);
       }
