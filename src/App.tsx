@@ -690,7 +690,17 @@ export default function App() {
                     <div id="room-running-announcement" className="bg-amber-500/10 border-b border-amber-500/10 px-4 py-3 flex items-start gap-2.5 shadow-sm">
                       <Megaphone className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                       <div className="flex-1 minimal-announce-body text-xs text-amber-350 max-h-16 overflow-y-auto leading-relaxed">
-                        <Markdown>{room.announcement}</Markdown>
+                        <Markdown
+                          components={{
+                            a: ({ href, children, node, ...props }) => (
+                              <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                                {children}
+                              </a>
+                            ),
+                          }}
+                        >
+                          {room.announcement}
+                        </Markdown>
                       </div>
                     </div>
                   )}

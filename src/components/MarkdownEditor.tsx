@@ -150,7 +150,17 @@ export default function MarkdownEditor({ initialValue, onSave }: MarkdownEditorP
         <div className="p-4 bg-slate-950 h-72 overflow-y-auto">
           <div className="markdown-body text-sm leading-relaxed text-slate-350">
             {markdown.trim() ? (
-              <Markdown>{markdown}</Markdown>
+              <Markdown
+                components={{
+                  a: ({ href, children, node, ...props }) => (
+                    <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
+                {markdown}
+              </Markdown>
             ) : (
               <p className="text-slate-600 italic text-center py-10">尚無任何公告內容</p>
             )}

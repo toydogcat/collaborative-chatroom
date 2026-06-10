@@ -83,6 +83,86 @@
   color: #f43f5e;
 }
 
+/* Minimal Announcement Body styling (fits inside amber running banner) */
+.minimal-announce-body p {
+  margin-bottom: 0.375rem;
+}
+
+.minimal-announce-body p:last-child {
+  margin-bottom: 0;
+}
+
+.minimal-announce-body ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-bottom: 0.375rem;
+}
+
+.minimal-announce-body ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-bottom: 0.375rem;
+}
+
+.minimal-announce-body li {
+  margin-bottom: 0.125rem;
+}
+
+.minimal-announce-body strong {
+  font-weight: 700;
+  color: #fef08a; /* lighter yellow/amber tint for emphasis */
+}
+
+.minimal-announce-body a {
+  color: #fbbf24; /* amber-400 */
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 600;
+  transition: color 0.15s ease-in-out;
+}
+
+.minimal-announce-body a:hover {
+  color: #f59e0b; /* amber-500 */
+}
+
+.minimal-announce-body blockquote {
+  border-left: 3px solid #b45309; /* amber-700 */
+  padding-left: 0.75rem;
+  color: #d97706; /* amber-600 */
+  font-style: italic;
+  margin: 0.5rem 0;
+}
+
+.minimal-announce-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  background-color: rgba(251, 191, 36, 0.15); /* amber-400 with opacity */
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  color: #fbbf24; /* amber-400 */
+}
+
+.minimal-announce-body h1,
+.minimal-announce-body h2,
+.minimal-announce-body h3 {
+  font-weight: 700;
+  color: #fff;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.minimal-announce-body h1 {
+  font-size: 0.95rem;
+}
+
+.minimal-announce-body h2 {
+  font-size: 0.85rem;
+}
+
+.minimal-announce-body h3 {
+  font-size: 0.75rem;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
