@@ -1,21 +1,9 @@
 # 📢 聯手聊天室公告 (Collaborative Chatroom Announcement)
 
-歡迎來到本聊天室！這是一個 **100% Serverless WebRTC P2P 多人連線聊天室**。
+# 重要資訊
 
----
+1. [Luna AI](https://luna-ai-b7862.web.app/)
+2. [公告](https://toydogcat.github.io/public-announcement/)
+3. [看書](https://toydogcat.github.io/ai-book/)
+4. [本地看書，看漫畫](http://192.168.0.148:3001/)
 
-## 🛠️ 本次連線資訊
-
-- **房主模式**：Node.js CLI Terminal Host
-- **連線協議**：WebRTC DataChannel (低延遲、高隱私 P2P 直接傳輸)
-- **連線狀態**：連線建立後，MQTT 信令服務會在 10 秒後自動中斷，此時將完全處於 **P2P 離線傳輸** 狀態。
-
----
-
-## 💡 溫馨提醒
-
-1. **分享二維碼**：點擊網頁右側的 **「複製快速登入連結」** 或讓訪客直接掃描 **QR Code**，即可快速進入聊天室。
-2. **語音輸入**：如果您不想打字，可以點擊輸入框旁邊的 🎤 按鈕進行中文語音輸入。
-3. **備份與還原**：身為房主，您可以點擊頂部的 **「房主控制面板」**，一鍵打包下載整個聊天紀錄 (ZIP 格式)。下次啟動聊天室時，上傳 ZIP 檔案即可完整還原公告與歷史訊息！
-
-祝您聊天愉快！✨
