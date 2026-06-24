@@ -38,6 +38,14 @@ import LinkPreview from './components/LinkPreview.tsx';
 import CameraQRScanner from './components/CameraQRScanner.tsx';
 import { useChatConnection } from './hooks/useChatConnection.ts';
 
+const MQTT_SERVERS = [
+  { name: 'EMQX (默認)', url: 'wss://broker.emqx.io:8084/mqtt' },
+  { name: 'HiveMQ', url: 'wss://broker.hivemq.com:8884/mqtt' },
+  { name: 'Mosquitto', url: 'wss://test.mosquitto.org:8081/mqtt' },
+  { name: 'Eclipse', url: 'wss://mqtt.eclipseprojects.io:443/mqtt' },
+  { name: '自訂伺服器', url: 'custom' }
+];
+
 export default function App() {
   // Authentication & session state
   const [userName, setUserName] = useState('');
@@ -48,10 +56,17 @@ export default function App() {
   const [shouldConnect, setShouldConnect] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
+  const [selectedMqttServer, setSelectedMqttServer] = useState('wss://broker.emqx.io:8084/mqtt');
+  const [customMqttServer, setCustomMqttServer] = useState('');
+  const [roomCodeType, setRoomCodeType] = useState<'random' | 'custom'>('random');
+  const [customRoomCode, setCustomRoomCode] = useState('');
+
   // ... (rest of the state and hooks) ...
   const connectionRoomId = useRef<string>('');
   const connectionUserName = useRef<string>('');
   const connectionPassword = useRef<string>('');
+
+  const activeMqttServer = selectedMqttServer === 'custom' ? customMqttServer.trim() : selectedMqttServer;
 
   // Use the new serverless P2P hook
   const {
@@ -66,7 +81,8 @@ export default function App() {
     shouldConnect ? connectionRoomId.current : '',
     shouldConnect ? connectionUserName.current : '',
     isHost,
-    shouldConnect ? connectionPassword.current : ''
+    shouldConnect ? connectionPassword.current : '',
+    shouldConnect ? activeMqttServer : undefined
   );
 
   // Derived states from room
@@ -103,10 +119,22 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const joinCode = params.get('joinCode');
+    const mqttServer = params.get('mqttServer');
     if (joinCode) {
       setRoomCodeInput(joinCode);
       setLoginMode('join');
-      setSuccessMsg(`已從掃描連結自動帶入房號: ${joinCode}`);
+      let successMessage = `已從掃描連結自動帶入房號: ${joinCode}`;
+      if (mqttServer) {
+        const isPredefined = MQTT_SERVERS.some(s => s.url === mqttServer);
+        if (isPredefined) {
+          setSelectedMqttServer(mqttServer);
+        } else {
+          setSelectedMqttServer('custom');
+          setCustomMqttServer(mqttServer);
+        }
+        successMessage += `，伺服器: ${mqttServer}`;
+      }
+      setSuccessMsg(successMessage);
     }
 
     // Handshake with parent frame for scroll sync (Luna AI Hub requirement)
@@ -153,13 +181,30 @@ export default function App() {
       setErrorMsg('請輸入房主姓名');
       return;
     }
+    if (selectedMqttServer === 'custom' && !customMqttServer.trim()) {
+      setErrorMsg('請輸入自訂 MQTT 伺服器網址');
+      return;
+    }
     setErrorMsg(null);
 
-    // Generate a random 8-character alphanumeric code
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid confusing characters
     let newCode = '';
-    for (let i = 0; i < 8; i++) {
-      newCode += chars.charAt(Math.floor(Math.random() * chars.length));
+    if (roomCodeType === 'custom') {
+      const code = customRoomCode.trim().toUpperCase();
+      if (!code) {
+        setErrorMsg('請輸入自訂房號');
+        return;
+      }
+      if (!/^[A-Z0-9]{4,20}$/.test(code)) {
+        setErrorMsg('自訂房號格式錯誤，僅能包含 4-20 位英文字母與數字');
+        return;
+      }
+      newCode = code;
+    } else {
+      // Generate a random 8-character alphanumeric code
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid confusing characters
+      for (let i = 0; i < 8; i++) {
+        newCode += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
     }
     
     connectionRoomId.current = newCode;
@@ -185,6 +230,10 @@ export default function App() {
     }
     if (!user) {
       setErrorMsg('請輸入您的聊天暱稱');
+      return;
+    }
+    if (selectedMqttServer === 'custom' && !customMqttServer.trim()) {
+      setErrorMsg('請輸入自訂 MQTT 伺服器網址');
       return;
     }
 
@@ -304,12 +353,24 @@ export default function App() {
     try {
       const url = new URL(decodedText);
       const code = url.searchParams.get('joinCode');
+      const mqttServer = url.searchParams.get('mqttServer');
       if (code) {
         setRoomCodeInput(code.toUpperCase());
-        setSuccessMsg(`掃描成功！已帶入房號: ${code.toUpperCase()}`);
+        let msg = `掃描成功！已帶入房號: ${code.toUpperCase()}`;
+        if (mqttServer) {
+          const isPredefined = MQTT_SERVERS.some(s => s.url === mqttServer);
+          if (isPredefined) {
+            setSelectedMqttServer(mqttServer);
+          } else {
+            setSelectedMqttServer('custom');
+            setCustomMqttServer(mqttServer);
+          }
+          msg += `，伺服器: ${mqttServer}`;
+        }
+        setSuccessMsg(msg);
       } else {
         // Try to see if the whole text is the code
-        if (/^[A-Z0-9]{8}$/i.test(decodedText)) {
+        if (/^[A-Z0-9]{4,20}$/i.test(decodedText)) {
           setRoomCodeInput(decodedText.toUpperCase());
           setSuccessMsg(`掃描成功！已帶入房號: ${decodedText.toUpperCase()}`);
         } else {
@@ -317,8 +378,8 @@ export default function App() {
         }
       }
     } catch (e) {
-      // Not a URL, check if it's an 8-character code
-      if (/^[A-Z0-9]{8}$/i.test(decodedText)) {
+      // Not a URL, check if it's an alphanumeric code
+      if (/^[A-Z0-9]{4,20}$/i.test(decodedText)) {
         setRoomCodeInput(decodedText.toUpperCase());
         setSuccessMsg(`掃描成功！已帶入房號: ${decodedText.toUpperCase()}`);
       } else {
@@ -326,6 +387,39 @@ export default function App() {
       }
     }
     setIsScannerOpen(false);
+  };
+
+  // Helper to render MQTT server selection
+  const renderMqttServerSelection = () => {
+    return (
+      <div className="space-y-1.5">
+        <label htmlFor="mqtt-server-select" className="block text-xs font-semibold text-slate-400">
+          訊號伺服器 (MQTT Server)
+        </label>
+        <select
+          id="mqtt-server-select"
+          value={selectedMqttServer}
+          onChange={(e) => setSelectedMqttServer(e.target.value)}
+          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-sm text-slate-150 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
+        >
+          {MQTT_SERVERS.map((server) => (
+            <option key={server.url} value={server.url}>
+              {server.name}
+            </option>
+          ))}
+        </select>
+        {selectedMqttServer === 'custom' && (
+          <input
+            type="text"
+            placeholder="例如: wss://broker.hivemq.com:8884/mqtt"
+            required
+            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-sm font-mono text-slate-150 placeholder-slate-600 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+            value={customMqttServer}
+            onChange={(e) => setCustomMqttServer(e.target.value)}
+          />
+        )}
+      </div>
+    );
   };
 
   // Filter pinned messages for quick rendering
@@ -497,7 +591,7 @@ export default function App() {
                         type="text"
                         id="room-code-input"
                         placeholder="例如: 8A2B3C4D"
-                        maxLength={8}
+                        maxLength={20}
                         required
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-sm font-mono tracking-wider text-slate-150 placeholder-slate-600 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                         value={roomCodeInput}
@@ -514,7 +608,7 @@ export default function App() {
                         id="user-name-input"
                         placeholder="輸入暱稱 (例如: 小明)"
                         required
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-sm text-slate-150 placeholder-slate-600 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-sm text-slate-150 placeholder-slate-605 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                         value={userName}
                         onChange={(e) => setUserName(e.target.value)}
                       />
@@ -533,6 +627,8 @@ export default function App() {
                         onChange={(e) => setRoomPasswordInput(e.target.value)}
                       />
                     </div>
+
+                    {renderMqttServerSelection()}
 
                     <button
                       type="submit"
@@ -572,6 +668,49 @@ export default function App() {
                     </div>
 
                     <div>
+                      <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+                        房號設定
+                      </label>
+                      <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 mb-2">
+                        <button
+                          type="button"
+                          id="btn-room-code-random"
+                          onClick={() => setRoomCodeType('random')}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                            roomCodeType === 'random'
+                              ? 'bg-indigo-600 text-white'
+                              : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          隨機房號
+                        </button>
+                        <button
+                          type="button"
+                          id="btn-room-code-custom"
+                          onClick={() => setRoomCodeType('custom')}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                            roomCodeType === 'custom'
+                              ? 'bg-indigo-600 text-white'
+                              : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          自訂房號
+                        </button>
+                      </div>
+                      {roomCodeType === 'custom' && (
+                        <input
+                          type="text"
+                          id="custom-room-code-input"
+                          placeholder="輸入自訂房號 (4-20位英數字，例如: MYROOM123)"
+                          required
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-sm font-mono tracking-wider text-slate-150 placeholder-slate-600 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                          value={customRoomCode}
+                          onChange={(e) => setCustomRoomCode(e.target.value.toUpperCase())}
+                        />
+                      )}
+                    </div>
+
+                    <div>
                       <label htmlFor="host-password-input" className="block text-xs font-semibold text-slate-400 mb-1.5">
                         設定房間密碼 (選填)
                       </label>
@@ -584,6 +723,8 @@ export default function App() {
                         onChange={(e) => setRoomPasswordInput(e.target.value)}
                       />
                     </div>
+
+                    {renderMqttServerSelection()}
 
                     <div className="p-3 bg-indigo-950/30 rounded-xl border border-indigo-550/20 flex gap-2.5">
                       <Lock className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
@@ -679,7 +820,7 @@ export default function App() {
                   </div>
 
                   {/* QR SCAN CODE MODAL FOR OTHER USERS */}
-                  <QRCodeView roomCode={room.code} />
+                  <QRCodeView roomCode={room.code} mqttServer={activeMqttServer} />
                 </div>
 
                 {/* Main chats panel */}

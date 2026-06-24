@@ -9,14 +9,17 @@ import QRCode from 'qrcode';
 
 interface QRCodeViewProps {
   roomCode: string;
+  mqttServer?: string;
 }
 
-export default function QRCodeView({ roomCode }: QRCodeViewProps) {
+export default function QRCodeView({ roomCode, mqttServer }: QRCodeViewProps) {
   const [copied, setCopied] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Generate the full link matching current origin
-  const joinUrl = `${window.location.origin}${window.location.pathname}?joinCode=${roomCode}`;
+  const joinUrl = `${window.location.origin}${window.location.pathname}?joinCode=${roomCode}${
+    mqttServer ? `&mqttServer=${encodeURIComponent(mqttServer)}` : ''
+  }`;
 
   useEffect(() => {
     if (canvasRef.current) {

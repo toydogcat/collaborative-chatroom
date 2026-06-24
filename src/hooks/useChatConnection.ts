@@ -18,7 +18,7 @@ const RTC_CONFIG: RTCConfiguration = {
   iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
 };
 
-export function useChatConnection(roomId: string, userName: string, isHost: boolean, password?: string) {
+export function useChatConnection(roomId: string, userName: string, isHost: boolean, password?: string, mqttServerUrl: string = 'wss://broker.emqx.io:8084/mqtt') {
   const [room, setRoom] = useState<Room | null>(null);
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +129,7 @@ export function useChatConnection(roomId: string, userName: string, isHost: bool
     if (!roomId || !userName) return;
 
     setStatus('connecting');
-    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+    const client = mqtt.connect(mqttServerUrl);
     mqttClientRef.current = client;
 
     const joinTopic = `luna/chat/${roomId}/join`;
@@ -261,7 +261,7 @@ export function useChatConnection(roomId: string, userName: string, isHost: bool
       peerConnections.current.forEach(pc => pc.close());
       if (userPeerConnection.current) userPeerConnection.current.close();
     };
-  }, [roomId, isHost, userName, myId, setupDataChannel, password]);
+  }, [roomId, isHost, userName, myId, setupDataChannel, password, mqttServerUrl]);
 
   const sendChatMessage = useCallback((text: string, imageUrl?: string, isSpeech?: boolean) => {
     const newMessage: ChatMessage = {

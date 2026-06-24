@@ -16,12 +16,6 @@ const rl = readline.createInterface({
   prompt: '> '
 });
 
-let room: Room;
-const peerConnections = new Map<string, datachannel.PeerConnection>();
-const dataChannels = new Map<string, datachannel.DataChannel>();
-const mqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-const myId = 'node_host_' + Math.random().toString(36).substring(2, 7);
-
 function generateRoomId(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let id = '';
@@ -45,19 +39,58 @@ function logMessage(user: string, text: string) {
   rl.prompt(true);
 }
 
-const roomId = generateRoomId();
+let room: Room;
+const peerConnections = new Map<string, datachannel.PeerConnection>();
+const dataChannels = new Map<string, datachannel.DataChannel>();
+const myId = 'node_host_' + Math.random().toString(36).substring(2, 7);
 
-// Parse arguments to detect password and/or announcement path
+// Parse options & arguments
+let roomId = '';
+let mqttServerUrl = 'wss://broker.emqx.io:8084/mqtt';
 let roomPassword = '';
 let announcementPath = '';
+
 const args = process.argv.slice(2);
-for (const arg of args) {
-  if (arg.endsWith('.md')) {
-    announcementPath = arg;
+for (let i = 0; i < args.length; i++) {
+  const arg = args[i];
+  if (arg === '--room' || arg === '-r') {
+    roomId = args[++i];
+  } else if (arg === '--mqtt' || arg === '-m') {
+    mqttServerUrl = args[++i];
+  } else if (arg === '--pass' || arg === '-p') {
+    roomPassword = args[++i];
+  } else if (arg === '--announce' || arg === '-a') {
+    announcementPath = args[++i];
+  } else if (arg.startsWith('--room=')) {
+    roomId = arg.split('=')[1];
+  } else if (arg.startsWith('--mqtt=')) {
+    mqttServerUrl = arg.split('=')[1];
+  } else if (arg.startsWith('--pass=')) {
+    roomPassword = arg.split('=')[1];
+  } else if (arg.startsWith('--announce=')) {
+    announcementPath = arg.split('=')[1];
   } else {
-    roomPassword = arg;
+    // Legacy fallback positional logic
+    if (arg.endsWith('.md')) {
+      announcementPath = arg;
+    } else {
+      roomPassword = arg;
+    }
   }
 }
+
+if (!roomId) {
+  roomId = generateRoomId();
+} else {
+  // Validate custom room code (4-20 alphanumeric characters)
+  roomId = roomId.toUpperCase();
+  if (!/^[A-Z0-9]{4,20}$/.test(roomId)) {
+    console.error(`\n❌ Error: Custom Room ID "${roomId}" must be 4 to 20 alphanumeric characters.`);
+    process.exit(1);
+  }
+}
+
+const mqttClient = mqtt.connect(mqttServerUrl);
 
 let announcementText = 'Welcome to the Node.js CLI Host!';
 if (announcementPath) {
@@ -89,12 +122,16 @@ room = {
 console.log(`\n🚀 Collaborative Chatroom Node.js Host Started`);
 console.log(`-----------------------------------------------`);
 console.log(`🏠 Room ID: ${roomId}`);
+console.log(`📡 Signal Server: ${mqttServerUrl}`);
 console.log(`👤 Host Name: ${room.hostName}`);
 if (room.password) {
   console.log(`🔒 Room Password: ${room.password}`);
 } else {
   console.log(`🔓 Room Password: (None)`);
 }
+console.log(`-----------------------------------------------`);
+console.log(`🔗 Quick Join Link:`);
+console.log(`  http://localhost:5173/?joinCode=${roomId}&mqttServer=${encodeURIComponent(mqttServerUrl)}`);
 console.log(`-----------------------------------------------`);
 console.log(`Type any message to send, or use commands:`);
 console.log(`  /announce <text>  - Update room announcement`);
