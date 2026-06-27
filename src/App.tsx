@@ -48,7 +48,7 @@ const MQTT_SERVERS = [
 
 export default function App() {
   // Authentication & session state
-  const [userName, setUserName] = useState('');
+  const [userName, setUserName] = useState('guest');
   const [hostNameInput, setHostNameInput] = useState('');
   const [roomCodeInput, setRoomCodeInput] = useState('');
   const [roomPasswordInput, setRoomPasswordInput] = useState('');
@@ -104,6 +104,7 @@ export default function App() {
 
   // Status & copying indicators
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // File and message refs for UI quality
@@ -120,6 +121,19 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const joinCode = params.get('joinCode');
     const mqttServer = params.get('mqttServer');
+    const password = params.get('password') || params.get('roomPassword');
+    const nickname = params.get('nickname') || params.get('userName');
+
+    if (nickname) {
+      setUserName(nickname);
+    } else {
+      setUserName('guest');
+    }
+
+    if (password) {
+      setRoomPasswordInput(password);
+    }
+
     if (joinCode) {
       setRoomCodeInput(joinCode);
       setLoginMode('join');
@@ -133,6 +147,12 @@ export default function App() {
           setCustomMqttServer(mqttServer);
         }
         successMessage += `，伺服器: ${mqttServer}`;
+      }
+      if (password) {
+        successMessage += `，已自動填入密碼`;
+      }
+      if (nickname) {
+        successMessage += `，已自動填入暱稱: ${nickname}`;
       }
       setSuccessMsg(successMessage);
     }
@@ -342,6 +362,33 @@ export default function App() {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
+  const getJoinUrl = () => {
+    const password = room?.password || roomPasswordInput;
+    const baseUrl = `${window.location.origin}${window.location.pathname}`;
+    const params = new URLSearchParams();
+    if (room?.code) {
+      params.set('joinCode', room.code);
+    }
+    if (activeMqttServer) {
+      params.set('mqttServer', activeMqttServer);
+    }
+    if (password) {
+      params.set('password', password);
+    }
+    params.set('nickname', 'guest');
+    return `${baseUrl}?${params.toString()}`;
+  };
+
+  const handleCopyJoinLink = () => {
+    const link = getJoinUrl();
+    navigator.clipboard.writeText(link).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }).catch((err) => {
+      console.error('Failed to copy link:', err);
+    });
+  };
+
   const handleLeaveRoom = () => {
     setShouldConnect(false);
     setIsHost(false);
@@ -354,6 +401,9 @@ export default function App() {
       const url = new URL(decodedText);
       const code = url.searchParams.get('joinCode');
       const mqttServer = url.searchParams.get('mqttServer');
+      const password = url.searchParams.get('password') || url.searchParams.get('roomPassword');
+      const nickname = url.searchParams.get('nickname') || url.searchParams.get('userName');
+
       if (code) {
         setRoomCodeInput(code.toUpperCase());
         let msg = `掃描成功！已帶入房號: ${code.toUpperCase()}`;
@@ -366,6 +416,14 @@ export default function App() {
             setCustomMqttServer(mqttServer);
           }
           msg += `，伺服器: ${mqttServer}`;
+        }
+        if (password) {
+          setRoomPasswordInput(password);
+          msg += `，已帶入密碼`;
+        }
+        if (nickname) {
+          setUserName(nickname);
+          msg += `，已帶入暱稱: ${nickname}`;
         }
         setSuccessMsg(msg);
       } else {
@@ -463,6 +521,26 @@ export default function App() {
                   {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
               </div>
+
+              {/* Copy Full Join Link Badge */}
+              <button
+                type="button"
+                onClick={handleCopyJoinLink}
+                className="hidden sm:flex items-center gap-1.5 py-1.5 px-3 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                title="複製快速登入連結 (含房號、MQTT 伺服器、密碼與預設暱稱)"
+              >
+                {copiedLink ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>連結已複製</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>複製登入連結</span>
+                  </>
+                )}
+              </button>
 
               {/* Leave Button */}
               <button
@@ -817,10 +895,29 @@ export default function App() {
                         <span className="font-semibold text-slate-200">{room.chats.length} 則</span>
                       </div>
                     </div>
+                    <div className="border-t border-slate-800/60 mt-3 pt-3">
+                      <button
+                        type="button"
+                        onClick={handleCopyJoinLink}
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                      >
+                        {copiedLink ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-450" />
+                            <span>連結已複製！</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>複製快速登入連結</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* QR SCAN CODE MODAL FOR OTHER USERS */}
-                  <QRCodeView roomCode={room.code} mqttServer={activeMqttServer} />
+                  <QRCodeView roomCode={room.code} joinUrl={getJoinUrl()} />
                 </div>
 
                 {/* Main chats panel */}
