@@ -22,6 +22,13 @@ export function useChatConnection(roomId: string, userName: string, isHost: bool
   const [room, setRoom] = useState<Room | null>(null);
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [reconnectTrigger, setReconnectTrigger] = useState(0);
+
+  const reconnect = useCallback(() => {
+    setError(null);
+    setStatus('connecting');
+    setReconnectTrigger((prev) => prev + 1);
+  }, []);
 
   const mqttClientRef = useRef<MqttClient | null>(null);
   const myId = useRef(Math.random().toString(36).substring(2, 11)).current;
@@ -256,12 +263,24 @@ export function useChatConnection(roomId: string, userName: string, isHost: bool
     });
 
     return () => {
-      if (mqttClientRef.current) mqttClientRef.current.end();
-      if (mqttCloseTimer.current) clearTimeout(mqttCloseTimer.current);
+      if (mqttClientRef.current) {
+        mqttClientRef.current.end();
+        mqttClientRef.current = null;
+      }
+      if (mqttCloseTimer.current) {
+        clearTimeout(mqttCloseTimer.current);
+        mqttCloseTimer.current = null;
+      }
+    };
+  }, [roomId, isHost, userName, myId, setupDataChannel, password, mqttServerUrl, reconnectTrigger]);
+
+  // Clean up WebRTC peer connections ONLY when the component unmounts
+  useEffect(() => {
+    return () => {
       peerConnections.current.forEach(pc => pc.close());
       if (userPeerConnection.current) userPeerConnection.current.close();
     };
-  }, [roomId, isHost, userName, myId, setupDataChannel, password, mqttServerUrl]);
+  }, []);
 
   const sendChatMessage = useCallback((text: string, imageUrl?: string, isSpeech?: boolean) => {
     const newMessage: ChatMessage = {
@@ -338,5 +357,6 @@ export function useChatConnection(roomId: string, userName: string, isHost: bool
     restoreRoomState,
     status,
     error,
+    reconnect,
   };
 }

@@ -25,7 +25,8 @@ import {
   Trash2,
   Lock,
   ArrowRight,
-  Camera
+  Camera,
+  RefreshCw
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 
@@ -76,7 +77,8 @@ export default function App() {
     togglePin,
     restoreRoomState,
     status,
-    error: connectionError
+    error: connectionError,
+    reconnect
   } = useChatConnection(
     shouldConnect ? connectionRoomId.current : '',
     shouldConnect ? connectionUserName.current : '',
@@ -894,6 +896,39 @@ export default function App() {
                         <span className="text-slate-500">歷史訊息：</span>
                         <span className="font-semibold text-slate-200">{room.chats.length} 則</span>
                       </div>
+                      <div className="flex justify-between items-center border-t border-slate-800/40 pt-2 mt-2">
+                        <span className="text-slate-500">信令狀態：</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`w-2 h-2 rounded-full ${
+                            status === 'connected' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' :
+                            status === 'connecting' ? 'bg-amber-500 animate-pulse' :
+                            status === 'error' ? 'bg-rose-500' : 'bg-slate-500'
+                          }`} />
+                          <span className={`font-semibold ${
+                            status === 'connected' ? 'text-emerald-450' :
+                            status === 'connecting' ? 'text-amber-450' :
+                            status === 'error' ? 'text-rose-400' : 'text-slate-400'
+                          }`}>
+                            {status === 'connected' ? '已連線' :
+                             status === 'connecting' ? '連線中' :
+                             status === 'error' ? '連線錯誤' : '未連線'}
+                          </span>
+                        </div>
+                      </div>
+                      {isHost && (
+                        <div className="mt-2.5 pt-2 border-t border-slate-800/40">
+                          <button
+                            type="button"
+                            onClick={reconnect}
+                            disabled={status === 'connecting'}
+                            className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 bg-slate-800 hover:bg-slate-750 text-slate-250 border border-slate-700 text-[11px] font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="重新建立與 MQTT 信令伺服器的連線"
+                          >
+                            <RefreshCw className={`w-3 h-3 ${status === 'connecting' ? 'animate-spin text-amber-400' : ''}`} />
+                            <span>信令伺服器重新連線</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div className="border-t border-slate-800/60 mt-3 pt-3">
                       <button
